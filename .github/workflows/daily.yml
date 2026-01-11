@@ -27,6 +27,10 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        env:
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+          USER_AGENT: ${{ secrets.USER_AGENT }}
+
         run: |
           python -u src/train.py
 
