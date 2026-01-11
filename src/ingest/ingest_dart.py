@@ -1,16 +1,7 @@
-# src/ingest/ingest_dart.py
-import os
-import requests
+import os, requests
+from typing import Dict, Any
 
-def fetch_fnltt_singl_acnt_all(corp_code: str, bsns_year: str, reprt_code: str = "11011") -> dict:
-    """
-    DART 단일회사 전체 재무제표 조회
-    reprt_code:
-      11011 사업보고서(연간)
-      11012 반기보고서
-      11013 1분기보고서
-      11014 3분기보고서
-    """
+def fetch_fnltt_singl_acnt_all(corp_code: str, bsns_year: str, reprt_code: str="11011") -> Dict[str, Any]:
     api_key = os.getenv("DART_API_KEY")
     if not api_key:
         raise RuntimeError("Missing DART_API_KEY")
@@ -22,7 +13,6 @@ def fetch_fnltt_singl_acnt_all(corp_code: str, bsns_year: str, reprt_code: str =
         "bsns_year": bsns_year,
         "reprt_code": reprt_code,
     }
-
     r = requests.get(url, params=params, timeout=30)
     r.raise_for_status()
-    return {"endpoint": "fnlttSinglAcntAll", "params": params, "data": r.json()}
+    return {"endpoint": url, "params": params, "data": r.json()}
