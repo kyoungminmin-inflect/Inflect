@@ -1,60 +1,29 @@
-name: Hourly ML Training Pipeline
+name: Hourly Train
 
 on:
-  # 매시간 정각 실행
   schedule:
     - cron: "0 * * * *"
-
-  # 수동 실행도 가능
   workflow_dispatch:
 
 jobs:
-  run-hourly-train:
+  run:
     runs-on: ubuntu-latest
-
     env:
-      # Supabase
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
-      # Korea
       DART_API_KEY: ${{ secrets.DART_API_KEY }}
       KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
-
-      # US
       CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
-      USER_AGENT: "InflectBot/1.0 (contact: youremail@example.com)"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Install dependencies
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      # 🔍 디버그 (문제 생기면 여기 로그 보면 됨)
-      - name: Debug environment
-        run: |
-          echo "PWD:"
-          pwd
-          echo "Repo files:"
-          ls -la
-          echo "SRC contents:"
-          ls -la src
-          echo "Python path:"
-          python - <<EOF
-          import sys
-          print("\n".join(sys.path))
-          EOF
-
-      # ✅ 핵심: 반드시 -m 방식
-      - name: Run hourly ML pipeline
+      - name: Run hourly pipeline
         run: |
           python -m src.run_hourly_train
