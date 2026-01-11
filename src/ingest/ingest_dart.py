@@ -1,37 +1,28 @@
-# src/ingest/ingest_census.py
-import os, requests
+# src/ingest/ingest_dart.py
+import os
+import requests
 
-def _get(url, params, user_agent: str):
-    headers = {"User-Agent": user_agent}
-    r = requests.get(url, params=params, headers=headers, timeout=30)
+def fetch_fnltt_singl_acnt_all(corp_code: str, bsns_year: str, reprt_code: str = "11011") -> dict:
+    """
+    DART 단일회사 전체 재무제표 조회
+    reprt_code:
+      11011 사업보고서(연간)
+      11012 반기보고서
+      11013 1분기보고서
+      11014 3분기보고서
+    """
+    api_key = os.getenv("DART_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing DART_API_KEY")
+
+    url = "https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json"
+    params = {
+        "crtfc_key": api_key,
+        "corp_code": corp_code,
+        "bsns_year": bsns_year,
+        "reprt_code": reprt_code,
+    }
+
+    r = requests.get(url, params=params, timeout=30)
     r.raise_for_status()
-    return r.json()
-
-def fetch_abscs_us_level():
-    key = os.getenv("CENSUS_API_KEY")
-    ua  = os.getenv("USER_AGENT", "InflectBot/1.0 (contact: dev@inflect.local)")
-    if not key:
-        raise RuntimeError("Missing CENSUS_API_KEY")
-
-    url = "https://api.census.gov/data/2023/abscs"
-    params = {
-        "get": "GEO_ID,NAME,NAICS2022,NAICS2022_LABEL,YEAR,EMP,PAYANN",
-        "for": "us:*",
-        "key": key,
-    }
-    return {"endpoint": "abscs", "params": params, "data": _get(url, params, ua)}
-
-def fetch_bds_timeseries_example():
-    key = os.getenv("CENSUS_API_KEY")
-    ua  = os.getenv("USER_AGENT", "InflectBot/1.0 (contact: dev@inflect.local)")
-    if not key:
-        raise RuntimeError("Missing CENSUS_API_KEY")
-
-    url = "https://api.census.gov/data/timeseries/bds"
-    params = {
-        "get": "YEAR,FIRMDEATHS,FIRMDEATHS_F,JOB_CREATION,JOB_CREATION_F",
-        "for": "us:*",
-        "key": key,
-    }
-    return {"endpoint": "bds", "params": params, "data": _get(url, params, ua)}
-
+    return {"endpoint": "fnlttSinglAcntAll", "params": params, "data": r.json()}
