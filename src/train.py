@@ -1,7 +1,7 @@
-import requests
 import time
+import requests
 
-def fetch_json(url, retries=3, timeout=20):
+def fetch_json(url: str, retries: int = 3, timeout: int = 20) -> dict:
     last_err = None
     for i in range(retries):
         try:
@@ -32,4 +32,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-`
