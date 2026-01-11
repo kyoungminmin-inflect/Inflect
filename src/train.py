@@ -1,27 +1,35 @@
 import requests
-from datetime import datetime
+import time
+
+def fetch_json(url, retries=3, timeout=20):
+    last_err = None
+    for i in range(retries):
+        try:
+            r = requests.get(url, timeout=timeout)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            last_err = e
+            time.sleep(2 * (i + 1))  # 2초, 4초, 6초 대기
+    raise last_err
 
 def main():
     print("=== Inflect Market Agent ===")
 
-    # 1. 비트코인 가격 가져오기 (연습용)
-    url = "https://api.coindesk.com/v1/bpi/currentprice/BTC.json"
-    data = requests.get(url).json()
+    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+    data = fetch_json(url)
 
-    price_usd = data["bpi"]["USD"]["rate_float"]
-    updated_time = data["time"]["updated"]
+    price_usd = data["bitcoin"]["usd"]
 
-    # 2. 간단한 판단
     signal = "HOLD"
     if price_usd > 50000:
         signal = "SELL"
     elif price_usd < 30000:
         signal = "BUY"
 
-    # 3. 결과 출력
-    print(f"Time: {updated_time}")
     print(f"BTC Price (USD): {price_usd}")
     print(f"Signal: {signal}")
 
 if __name__ == "__main__":
     main()
+`
