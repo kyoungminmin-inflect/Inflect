@@ -1,41 +1,41 @@
-# src/ml/build_features.py
-from datetime import date
-from src.db.supabase_client import insert_features
+from datetime import datetime, timezone
+from typing import List, Dict, Any
+from supabase import Client
 
-FIN_KEYS = [
-    "finance:revenue",
-    "finance:op_income",
-    "finance:net_income",
-    "finance:assets",
-    "finance:liabilities",
-]
+from src.normalize.normalize_census import normalize_abscs
 
-def build_features_for_company(sb, company_key: str, as_of: date | None = None) -> dict:
-    # 최신 facts 가져오기(간단화: key별 최신 1개)
-    feats = {}
-    for k in FIN_KEYS:
-        res = (sb.table("company_facts")
-                 .select("fact_value_num, fact_value_text, as_of_date")
-                 .eq("company_key", company_key)
-                 .eq("fact_key", k)
-                 .order("as_of_date", desc=True)
-                 .limit(1)
-                 .execute())
-        rows = res.data or []
-        if rows:
-            feats[k] = rows[0].get("fact_value_num")
+def build_hourly_features(sb: Client, run_at: datetime) -> None:
+    # 최근 raw census 이벤트 1개 가져오기
+    res = sb.table("raw_events")\
+        .select("*")\
+        .eq("source", "census")\
+        .order("fetched_at", desc=True)\
+        .limit(1)\
+        .execute()
 
-    # 파생 피처 예시: 부채비율
-    assets = feats.get("finance:assets") or 0
-    liab   = feats.get("finance:liabilities") or 0
-    feats["ratio:debt_to_assets"] = (liab / assets) if assets else None
+    if not res.data:
+        return
 
-    return feats
+    payload = res.data[0]["payload"]
+    rows = normalize_abscs(payload)
 
-def run_build_features(sb, as_of: date | None = None):
-    companies = sb.table("companies").select("company_key").execute().data or []
-    for c in companies:
-        ck = c["company_key"]
-        feats = build_features_for_company(sb, ck, as_of=as_of)
-        insert_features(sb, ck, feats, as_of=as_of)
+    # 아주 단순: EMP 합계 같은 지표 만들기(예시)
+    emp_vals = []
+    for row in rows:
+        try:
+            if row.get("EMP"):
+                emp_vals.append(float(row["EMP"]))
+        except:
+            pass
 
+    emp_sum = sum(emp_vals) if emp_vals else None
+
+    feature_rows = [{
+        "run_at": run_at.isoformat(),
+        "country": "US",
+        "metric": "abscs_emp_sum",
+        "value": emp_sum,
+        "meta": {"source": "census", "topic": "abscs_us_level"},
+    }]
+
+    sb.table("features_hourly").insert(feature_rows).execute()
